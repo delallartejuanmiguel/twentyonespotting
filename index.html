@@ -318,6 +318,12 @@
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; animation:none !important; }
   }
+
+  /* ---------- dark mode: swap the pink/lime pairing ---------- */
+  body.dark-mode{
+    --bg:   #FF66B2;
+    --card: #C8D124;
+  }
 </style>
 </head>
 <body>
@@ -327,6 +333,7 @@
     <div class="brand">
       <h1>twentyonespotting</h1>
       <p>If it's hot, spot.</p>
+      <p id="publicBanner" style="display:none; font-weight:600; margin-top:6px;">👁️ Read-only shared view</p>
     </div>
     <div class="stats">
       <div><span class="num" id="statTotal">0</span><span class="lbl">Logged</span></div>
@@ -346,12 +353,17 @@
         <input type="text" id="searchInput" placeholder="Search title or artist…">
       </div>
       <select class="sort-select" id="sortSelect">
-        <option value="date">Sort: Date</option>
+        <option value="release-newest">Sort: Date Released (Newest)</option>
+        <option value="release-oldest">Sort: Date Released (Oldest)</option>
         <option value="rating">Sort: Rating</option>
         <option value="alpha">Sort: Title A–Z</option>
       </select>
     </div>
-    <button class="btn-primary" id="openModalBtn">＋ Log something</button>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn-ghost" id="darkModeToggle" title="Toggle dark mode">🌙</button>
+      <button class="btn-ghost" id="shareBtn" title="Copy a read-only share link">🔗 Share</button>
+      <button class="btn-primary" id="openModalBtn">＋ Log something</button>
+    </div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -404,6 +416,12 @@
           <input type="text" id="fieldCoverUrl" placeholder="Paste an image URL…">
         </div>
       </div>
+    </div>
+
+    <div class="field">
+      <label for="fieldLink">Spotify / YouTube link</label>
+      <input type="text" id="fieldLink" placeholder="https://open.spotify.com/… or https://youtube.com/…">
+      <p class="field-hint">Clicking the cover art will open this link in a new tab.</p>
     </div>
 
     <div class="field">
@@ -467,7 +485,7 @@
   let entries = [];
   let currentFilter = 'all';
   let searchQuery = '';
-  let sortMode = 'date';
+  let sortMode = 'release-newest';
   let currentPage = 1;
 
   let editingId = null;
@@ -479,6 +497,23 @@
   const $ = sel => document.querySelector(sel);
   const grid = $('#grid');
   const pagination = $('#pagination');
+
+  /* ---------- read-only public share view ---------- */
+  // Visiting the page with ?public=1 hides every editing control.
+  // Note: this only hides the UI — it does not change database permissions,
+  // so treat it as a friendly view mode rather than a security boundary.
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicView = urlParams.get('public') === '1';
+
+  if(isPublicView){
+    document.body.classList.add('public-view');
+    const banner = $('#publicBanner');
+    if(banner) banner.style.display = 'block';
+    const openBtn = $('#openModalBtn');
+    if(openBtn) openBtn.style.display = 'none';
+    const shareBtnEl = $('#shareBtn');
+    if(shareBtnEl) shareBtnEl.style.display = 'none';
+  }
 
   /* ---------- Supabase persistence ---------- */
 
@@ -497,6 +532,7 @@
       aotyYear: row.aoty_year ? Number(row.aoty_year) : null,
       review: row.review || '',
       reviewDate: row.review_date || '',
+      link: row.link_url || '',
       createdAt: Number(row.created_at) || Date.now()
     };
   }
@@ -515,6 +551,7 @@
       aoty_year: entry.aotyYear,
       review: entry.review || '',
       review_date: entry.reviewDate || '',
+      link_url: entry.link || '',
       created_at: entry.createdAt
     };
   }
@@ -624,17 +661,6 @@
   }
 
   /* ---------- sorting / filtering / search ---------- */
-  function effectiveTimestamp(e){
-    if(e.reviewDate){
-      const t = Date.parse(e.reviewDate);
-      if(!isNaN(t)) return t;
-    }
-    if(e.releaseYear){
-      return new Date(Number(e.releaseYear), 0, 1).getTime();
-    }
-    return e.createdAt;
-  }
-
   function getFilteredSorted(){
     const q = searchQuery.trim().toLowerCase();
     let list = entries.filter(e => currentFilter === 'all' ? true : e.type === currentFilter);
@@ -646,7 +672,13 @@
     list = list.slice().sort((a,b) => {
       if(sortMode === 'rating') return b.rating - a.rating;
       if(sortMode === 'alpha') return a.title.localeCompare(b.title);
-      return effectiveTimestamp(b) - effectiveTimestamp(a);
+      // release-newest / release-oldest: sort by release year.
+      // Entries with no release year always sort to the end.
+      const ay = a.releaseYear, by = b.releaseYear;
+      if(ay == null && by == null) return b.createdAt - a.createdAt;
+      if(ay == null) return 1;
+      if(by == null) return -1;
+      return sortMode === 'release-oldest' ? ay - by : by - ay;
     });
     return list;
   }
@@ -688,10 +720,10 @@
 
       card.innerHTML = `
         <div class="type-tag">${entry.type === 'song' ? 'Track' : 'Album'}</div>
-        <div class="actions">
+        ${isPublicView ? '' : `<div class="actions">
           <button class="icon-btn" data-action="edit" title="Edit">✎</button>
           <button class="icon-btn" data-action="delete" title="Delete">✕</button>
-        </div>
+        </div>`}
         <div class="cover-container">
           ${entry.cover
             ? `<img class="cover" src="${entry.cover}" alt="${escapeHtml(entry.title)} cover">`
@@ -717,17 +749,29 @@
       const ratingEl = card.querySelector('.rating');
       attachRatingWidget(ratingEl, () => entry.rating, () => {}, true);
 
-      card.querySelector('[data-action="edit"]').addEventListener('click', () => openModal(entry.id));
+      if(!isPublicView){
+        card.querySelector('[data-action="edit"]')?.addEventListener('click', () => openModal(entry.id));
 
-      card.querySelector('[data-action="delete"]').addEventListener('click', () => {
-        if(confirm(`Delete "${entry.title}" from your log?`)){
-          entries = entries.filter(e => e.id !== entry.id);
-          render();
-          apiDelete(entry.id);
+        card.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+          if(confirm(`Delete "${entry.title}" from your log?`)){
+            entries = entries.filter(e => e.id !== entry.id);
+            render();
+            apiDelete(entry.id);
+          }
+        });
+      }
+
+      card.querySelector('.cover, .cover-placeholder')?.addEventListener('click', () => {
+        if(entry.link){
+          window.open(entry.link, '_blank', 'noopener');
+        } else if(!isPublicView){
+          openModal(entry.id);
         }
       });
-      card.querySelector('.cover, .cover-placeholder')?.addEventListener('click', () => openModal(entry.id));
-      card.querySelector('.title').addEventListener('click', () => openModal(entry.id));
+
+      if(!isPublicView){
+        card.querySelector('.title').addEventListener('click', () => openModal(entry.id));
+      }
     });
 
     renderPagination(totalPages);
@@ -815,6 +859,7 @@
     $('#fieldReleaseYear').value = '';
     $('#fieldCoverUrl').value = '';
     $('#coverPreview').src = '';
+    $('#fieldLink').value = '';
     $('#fieldAotyYear').value = '';
     $('#fieldReview').value = '';
     $('#fieldReviewDate').value = '';
@@ -826,6 +871,7 @@
   }
 
   function openModal(id){
+    if(isPublicView) return;
     resetForm();
     if(id){
       const entry = entries.find(e => e.id === id);
@@ -840,6 +886,7 @@
         $('#fieldReleaseYear').value = entry.releaseYear || '';
         $('#fieldCoverUrl').value = entry.cover || '';
         $('#coverPreview').src = entry.cover || '';
+        $('#fieldLink').value = entry.link || '';
         $('#fieldAotyYear').value = entry.aotyYear || '';
         $('#fieldReview').value = entry.review || '';
         $('#fieldReviewDate').value = entry.reviewDate || '';
@@ -902,11 +949,12 @@
     const aotyYear = $('#fieldAotyYear').value ? Number($('#fieldAotyYear').value) : null;
     const review = $('#fieldReview').value.trim();
     const reviewDate = review ? $('#fieldReviewDate').value : '';
+    const link = $('#fieldLink').value.trim();
 
     const payload = {
       type: formType, title, artist, cover: formCoverData, rating: formRatingValue,
       tags, releaseYear, badge: formBadge, aotyYear: formBadge === 'aoty' ? aotyYear : null,
-      review, reviewDate
+      review, reviewDate, link
     };
 
     if(editingId){
@@ -921,6 +969,33 @@
       closeModal();
       render();
       apiCreate(newEntry);
+    }
+  });
+
+  /* ---------- dark mode ---------- */
+  const darkModeBtn = $('#darkModeToggle');
+  function applyDarkMode(on){
+    document.body.classList.toggle('dark-mode', on);
+    if(darkModeBtn) darkModeBtn.textContent = on ? '☀️' : '🌙';
+  }
+  let darkModeOn = false;
+  try { darkModeOn = localStorage.getItem('t1s-dark-mode') === '1'; } catch(e){}
+  applyDarkMode(darkModeOn);
+  darkModeBtn?.addEventListener('click', () => {
+    darkModeOn = !darkModeOn;
+    applyDarkMode(darkModeOn);
+    try { localStorage.setItem('t1s-dark-mode', darkModeOn ? '1' : '0'); } catch(e){}
+  });
+
+  /* ---------- read-only share link ---------- */
+  const shareBtn = $('#shareBtn');
+  shareBtn?.addEventListener('click', async () => {
+    const shareUrl = window.location.origin + window.location.pathname + '?public=1';
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Read-only share link copied to clipboard:\n' + shareUrl);
+    } catch(err) {
+      prompt('Copy this read-only share link:', shareUrl);
     }
   });
 
