@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>twentyonespotting</title>
+<meta name="description" content="If it's hot, spot.">
+<meta property="og:title" content="twentyonespotting">
+<meta property="og:description" content="If it's hot, spot.">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --ink:      #000000;   /* Black — text and borders */
+    --bg:       #C8D124;   /* Chartreuse/Yellow-Green — page background */
+    --card:     #FF66B2;   /* Vibrant Pink — card background and buttons */
+    --muted:    #555555;   /* Muted text */
+    --accent:   #FF1493;   /* Deep pink for active states */
+    --paper:    #FFFFFF;
+    --star:     28px;
+    --radius:   12px;
+    --shadow:   0 8px 24px rgba(0,0,0,.08);
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--bg);
+    color: var(--ink);
+    /* Apple System Font Stack */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection{ background: var(--card); color: var(--ink); }
+  a{ color: var(--ink); }
+
+  /* ---------- layout shell ---------- */
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 0 28px 100px; }
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between; gap: 24px;
+    flex-wrap: wrap;
+    padding: 56px 0 30px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 34px;
+  }
+  .brand h1{
+    font-weight: 700;
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .brand p{
+    margin:0; color: var(--muted); font-size: 1.05rem; max-width: 46ch;
+  }
+
+  .stats{
+    display:flex; gap: 26px; 
+  }
+  .stats div{ text-align:right; }
+  .stats .num{ font-size: 1.6rem; font-weight: 600; color: var(--ink); display:block; line-height:1; }
+  .stats .lbl{ font-size: .7rem; font-weight: 500; letter-spacing:.05em; text-transform:uppercase; color: var(--muted); }
+
+  /* ---------- controls row ---------- */
+  .controls{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 14px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .controls-left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .tabs{ display:flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 999px; border: 2px solid var(--ink); }
+  .tabs button{
+    border:none; background: transparent; color: var(--muted);
+    font-family: inherit; font-size: .85rem; font-weight:600;
+    padding: 8px 18px; border-radius: 999px; cursor:pointer; transition: all .15s ease;
+  }
+  .tabs button.active{ background: var(--card); color: var(--ink); }
+  .tabs button:hover:not(.active){ color: var(--ink); }
+
+  .search-box{ position:relative; }
+  .search-box input{
+    width: 200px; padding: 10px 14px 10px 32px; border-radius: 999px;
+    border: 2px solid var(--ink); background: var(--card);
+    color: var(--ink); font-family: inherit; font-size:.85rem; font-weight: 500;
+  }
+  .search-box input::placeholder{ color: #555; }
+  .search-box input:focus{ outline: none; border-color: var(--ink); }
+  .search-box::before{
+    content:"⌕"; position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    color: var(--ink); font-size:1.1rem; pointer-events:none; font-weight: bold;
+  }
+
+  .sort-select{
+    padding: 10px 14px; border-radius: 999px; border: 2px solid var(--ink);
+    background: var(--card); color: var(--ink); font-family: inherit; font-size:.85rem; font-weight: 600;
+    cursor:pointer;
+  }
+  .sort-select:focus{ outline: none; border-color: var(--ink); }
+
+  .btn-primary{
+    font-family: inherit; font-weight:600; font-size:.9rem;
+    background: var(--card); color: var(--ink); border: 2px solid var(--ink);
+    padding: 12px 22px; border-radius: 999px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+    transition: transform .15s ease;
+  }
+  .btn-primary:hover{ transform: translateY(-2px); background: var(--ink); color: var(--card); }
+  .btn-primary:active{ transform: translateY(0); }
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+  @media (max-width: 940px){ .grid{ grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px){ .grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 420px){ .grid{ grid-template-columns: 1fr; } }
+
+  .empty-state{
+    grid-column: 1/-1; text-align:center; padding: 80px 20px;
+    border: 2px dashed var(--ink); border-radius: var(--radius);
+    color: var(--muted);
+  }
+  .empty-state strong{ display:block; color: var(--ink); font-size:1.3rem; margin-bottom:8px; font-weight:600; }
+
+  .card{
+    position:relative; border-radius: var(--radius); overflow:hidden;
+    background: var(--card); 
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0px var(--ink);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .card:hover{ transform: translate(-2px, -2px); box-shadow: 6px 6px 0px var(--ink); }
+  
+  .cover-container {
+    position: relative;
+    width: 100%;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .card .cover, .card .cover-placeholder{ cursor:pointer; }
+  .card .cover{
+    width:100%; aspect-ratio: 1/1; object-fit: cover; display:block;
+    background: #E5E5E5; 
+  }
+  .card .cover-placeholder{
+    width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+    background: #E5E5E5; color: var(--ink); font-size: 2rem;
+  }
+  .card .type-tag{
+    position:absolute; top:9px; right:9px; z-index:3;
+    font-size:.65rem; font-weight: 700; text-transform:uppercase; letter-spacing:.05em;
+    background: var(--bg); color: var(--ink); border: 2px solid var(--ink);
+    padding: 4px 8px; border-radius: 6px; 
+  }
+
+  .badge-chip{
+    position:absolute; left:12px; bottom:12px; z-index:3;
+    font-size:.85rem; font-weight: 700; letter-spacing:.03em;
+    padding: 6px 12px; border-radius: 8px; border: 2px solid var(--ink);
+  }
+  .badge-chip.spotted{
+    background: var(--bg); color: var(--ink); 
+  }
+  .badge-chip.aoty{
+    background: var(--ink); color: var(--bg); 
+    transform: rotate(-3deg); 
+  }
+
+  .card .info{ padding: 14px; }
+  .card .title{
+    font-weight:700; font-size: 1.05rem; line-height:1.25; letter-spacing: -0.01em;
+    margin: 0 0 4px; color: var(--ink); cursor:pointer;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .card .artist{ margin:0 0 10px; font-size:.85rem; font-weight: 500; color: var(--muted); }
+
+  .tags-row{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .tag-chip{
+    font-size:.65rem; font-weight: 600; color: var(--ink);
+    background: rgba(255,255,255,.5); border: 1px solid var(--ink);
+    padding: 3px 8px; border-radius: 999px;
+  }
+  .reviewed-flag{
+    margin: 0 0 8px; font-size:.75rem; font-weight: 600; color: var(--ink); 
+  }
+
+  .card .actions{
+    position:absolute; top:9px; left:14px; z-index:3;
+    display:flex; gap:6px; opacity:0; transition: opacity .15s ease;
+  }
+  .card:hover .actions, .card:focus-within .actions{ opacity:1; }
+  .icon-btn{
+    width:28px; height:28px; border-radius:50%; cursor:pointer;
+    background: var(--bg); color: var(--ink); display:flex; align-items:center; justify-content:center;
+    font-size:.8rem; border: 2px solid var(--ink); font-weight: bold;
+  }
+  .icon-btn:hover{ background: var(--ink); color: var(--bg); }
+
+  /* ---------- star rating ---------- */
+  .rating{
+    position:relative;
+    width: calc(var(--star) * 5);
+    height: var(--star);
+    cursor:pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rating.readonly{ cursor:default; }
+  .rating .layer{
+    position:absolute; top:0; left:0; height:100%;
+    width: calc(var(--star) * 5);
+    background-repeat: repeat-x;
+    background-size: var(--star) 100%;
+    pointer-events:none;
+  }
+  .rating .track{
+    width:100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round' d='M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 6.9-6.2-3.7-6.2 3.7 1.6-6.9-5.4-4.8 7.1-.7z'/%3E%3C/svg%3E");
+  }
+  .rating .fill{
+    width:0%;
+    overflow:hidden;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000000' stroke='%23000000' stroke-width='1.5' stroke-linejoin='round' d='M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 6.9-6.2-3.7-6.2 3.7 1.6-6.9-5.4-4.8 7.1-.7z'/%3E%3C/svg%3E");
+    transition: width .1s ease;
+  }
+  .rating.dragging .fill{ transition:none; }
+  .rating-row{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .rating-label{
+    font-size:.75rem; font-weight: 600; color: var(--ink);
+    min-width: 30px;
+  }
+
+  /* ---------- pagination ---------- */
+  .pagination{
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    margin-top: 36px; font-size:.85rem; font-weight: 500; color: var(--ink);
+  }
+  .pagination button{
+    background: var(--bg); border: 2px solid var(--ink); color: var(--ink);
+    padding: 8px 16px; border-radius:999px; cursor:pointer; font-family: inherit; font-size:.85rem; font-weight: 600;
+  }
+  .pagination button:disabled{ opacity:.35; cursor:default; }
+  .pagination button:not(:disabled):hover{ background: var(--card); }
+  .pagination .page-jump{
+    width:56px; padding:7px 8px; border-radius:6px; border:2px solid var(--ink);
+    background: var(--bg); color: var(--ink); text-align:center; font-family: inherit; font-weight: 600;
+  }
+  .pagination .page-jump:focus { outline: none; background: var(--card); }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background: rgba(255,255,255,.8);
+    display:none; align-items:center; justify-content:center; z-index:50; padding: 20px;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    background: var(--card); border-radius: 16px; width: min(480px, 100%);
+    padding: 30px 28px 26px; box-shadow: 8px 8px 0px var(--ink); border: 2px solid var(--ink);
+    max-height: 90vh; overflow-y:auto;
+  }
+  .modal h2{
+    font-weight:700; margin: 0 0 6px; font-size:1.4rem; color: var(--ink); letter-spacing: -0.01em;
+  }
+  .modal .sub{ margin:0 0 22px; color: var(--muted); font-size:.85rem; font-weight: 500; }
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block; font-size:.75rem; font-weight: 700; text-transform:uppercase;
+    color: var(--ink); margin-bottom:6px; 
+  }
+  .field-hint{ font-size:.7rem; color: var(--muted); margin: 4px 0 0; }
+  .two-col{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .field input[type=text], .field input[type=number], .field input[type=date], .field select, .field textarea{
+    width:100%; padding: 11px 13px; border-radius:8px; border:2px solid var(--ink);
+    background: var(--bg); color: var(--ink); font-family:inherit; font-size:.92rem; font-weight: 500;
+  }
+  .field textarea{ resize:vertical; min-height:70px; }
+  .field input::placeholder, .field textarea::placeholder{ color: #555; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline: none; border-color: var(--ink); background: var(--paper); }
+
+  .type-toggle{ display:flex; gap:8px; }
+  .type-toggle button{
+    flex:1; padding:10px; border-radius:8px; border:2px solid var(--ink);
+    background: var(--bg); color: var(--ink); cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .type-toggle button.active{ background: var(--ink); color: var(--bg); }
+
+  .cover-input{ display:flex; gap:10px; align-items:flex-start; }
+  .cover-preview{
+    width:64px; height:64px; border-radius:8px; object-fit:cover; flex-shrink:0;
+    background: #E5E5E5; border:2px solid var(--ink);
+  }
+  .cover-fields{ flex:1; display:flex; flex-direction:column; gap:8px; }
+
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:22px; }
+  .btn-ghost{
+    background:transparent; border:2px solid var(--ink); color: var(--ink);
+    padding: 11px 20px; border-radius:999px; cursor:pointer; font-family:inherit; font-weight: 600;
+  }
+  .btn-ghost:hover{ background: var(--bg); }
+
+  footer.made{
+    text-align:center; margin-top:60px; color: var(--muted); font-size:.8rem; font-weight: 500;
+  }
+
+  @media (max-width:520px){
+    header.top{ flex-direction:column; align-items:flex-start; }
+    .stats{ align-self:flex-start; }
+    .controls{ flex-direction:column; align-items:stretch; }
+    .controls-left{ justify-content:center; }
+    .tabs{ justify-content:center; }
+    .search-box input{ width:100%; }
+    .two-col{ grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>twentyonespotting</h1>
+      <p>If it's hot, spot.</p>
+    </div>
+    <div class="stats">
+      <div><span class="num" id="statTotal">0</span><span class="lbl">Logged</span></div>
+      <div><span class="num" id="statAlbums">0</span><span class="lbl">Albums</span></div>
+      <div><span class="num" id="statSongs">0</span><span class="lbl">Tracks</span></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="controls-left">
+      <div class="tabs" id="filterTabs">
+        <button data-filter="all" class="active">All</button>
+        <button data-filter="album">Albums</button>
+        <button data-filter="song">Tracks</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search title or artist…">
+      </div>
+      <select class="sort-select" id="sortSelect">
+        <option value="date">Sort: Date</option>
+        <option value="rating">Sort: Rating</option>
+        <option value="alpha">Sort: Title A–Z</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="openModalBtn">＋ Log something</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="pagination" id="pagination"></div>
+
+  <footer class="made">walang ads, 'di ba babs?</footer>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle">Log a listen</h2>
+    <p class="sub">Fill in what you've got — most fields are optional.</p>
+
+    <div class="field">
+      <label>Type</label>
+      <div class="type-toggle" id="typeToggle">
+        <button type="button" data-type="album" class="active">Album</button>
+        <button type="button" data-type="song">Track</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fieldTitle">Title</label>
+      <input type="text" id="fieldTitle" placeholder="e.g. In Rainbows">
+    </div>
+
+    <div class="field">
+      <label for="fieldArtist">Artist</label>
+      <input type="text" id="fieldArtist" placeholder="e.g. Radiohead">
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="fieldTags">Genre / tags</label>
+        <input type="text" id="fieldTags" placeholder="art rock, 90s">
+        <p class="field-hint">Comma-separated</p>
+      </div>
+      <div class="field">
+        <label for="fieldReleaseYear">Release year</label>
+        <input type="number" id="fieldReleaseYear" placeholder="2007" min="1900" max="2100">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fieldCoverUrl">Cover art URL</label>
+      <div class="cover-input">
+        <img class="cover-preview" id="coverPreview" alt="">
+        <div class="cover-fields">
+          <input type="text" id="fieldCoverUrl" placeholder="Paste an image URL…">
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Your rating</label>
+      <div class="rating-row">
+        <div class="rating" id="formRating">
+          <div class="layer track"></div>
+          <div class="layer fill"></div>
+        </div>
+        <span class="rating-label" id="formRatingLabel">Not rated</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Mark</label>
+      <div class="type-toggle" id="badgeToggle">
+        <button type="button" data-badge="none" class="active">None</button>
+        <button type="button" data-badge="spotted">Spotted</button>
+        <button type="button" data-badge="aoty">Album of the Year</button>
+      </div>
+    </div>
+
+    <div class="field" id="aotyYearField" style="display:none;">
+      <label for="fieldAotyYear">Album of the Year — which year?</label>
+      <input type="number" id="fieldAotyYear" placeholder="2026" min="1900" max="2100">
+    </div>
+
+    <div class="field">
+      <label for="fieldReview">Review</label>
+      <textarea id="fieldReview" placeholder="What did you think?"></textarea>
+    </div>
+
+    <div class="field" id="reviewDateField" style="display:none;">
+      <label for="fieldReviewDate">Date reviewed</label>
+      <input type="date" id="fieldReviewDate">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancelBtn">Cancel</button>
+      <button class="btn-primary" id="saveBtn">Save entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ====== FILL THESE IN from Supabase → Settings → API ======
+  const SUPABASE_URL = 'https://aynfknzclinypphwlpkc.supabase.co';   // e.g. https://xxxxx.supabase.co
+  const SUPABASE_KEY = 'sb_publishable_tI-aN-AL92cJiiJ-_eNvnA_jgNENENi';      // the "anon" / "publishable" key, not service_role
+  // ============================================================
+
+  const REST_URL = SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/entries';
+  const HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  };
+
+  const PAGE_SIZE = 24;
+
+  let entries = [];
+  let currentFilter = 'all';
+  let searchQuery = '';
+  let sortMode = 'date';
+  let currentPage = 1;
+
+  let editingId = null;
+  let formType = 'album';
+  let formRatingValue = 0;
+  let formCoverData = '';
+  let formBadge = 'none';
+
+  const $ = sel => document.querySelector(sel);
+  const grid = $('#grid');
+  const pagination = $('#pagination');
+
+  /* ---------- Supabase persistence ---------- */
+
+  // DB uses snake_case columns; the app uses camelCase. Convert both ways.
+  function fromRow(row){
+    return {
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      artist: row.artist,
+      cover: row.cover || '',
+      rating: Number(row.rating) || 0,
+      tags: row.tags ? String(row.tags).split(',').map(t => t.trim()).filter(Boolean) : [],
+      releaseYear: row.release_year ? Number(row.release_year) : null,
+      badge: row.badge || 'none',
+      aotyYear: row.aoty_year ? Number(row.aoty_year) : null,
+      review: row.review || '',
+      reviewDate: row.review_date || '',
+      createdAt: Number(row.created_at) || Date.now()
+    };
+  }
+
+  function toRow(entry){
+    return {
+      id: entry.id,
+      type: entry.type,
+      title: entry.title,
+      artist: entry.artist,
+      cover: entry.cover || '',
+      rating: entry.rating,
+      tags: (entry.tags || []).join(','),
+      release_year: entry.releaseYear,
+      badge: entry.badge,
+      aoty_year: entry.aotyYear,
+      review: entry.review || '',
+      review_date: entry.reviewDate || '',
+      created_at: entry.createdAt
+    };
+  }
+
+  async function load(){
+    grid.innerHTML = `<div class="empty-state"><strong>Loading your log…</strong></div>`;
+    try {
+      const res = await fetch(REST_URL + '?select=*', { headers: HEADERS });
+      if(!res.ok) throw new Error('Fetch failed: ' + res.status);
+      const rows = await res.json();
+      entries = rows.map(fromRow);
+    } catch(err) {
+      console.error('Load error:', err);
+      grid.innerHTML = `<div class="empty-state"><strong>Couldn't reach the database</strong>Check that your Supabase URL and key are set correctly.</div>`;
+      return;
+    }
+    render();
+  }
+
+  async function apiCreate(entry){
+    try {
+      const res = await fetch(REST_URL, {
+        method: 'POST',
+        headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(toRow(entry))
+      });
+      if(!res.ok) console.error('Create failed:', res.status, await res.text());
+    } catch(err) { console.error('Create error:', err); }
+  }
+
+  async function apiUpdate(entry){
+    try {
+      const res = await fetch(REST_URL + '?id=eq.' + encodeURIComponent(entry.id), {
+        method: 'PATCH',
+        headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(toRow(entry))
+      });
+      if(!res.ok) console.error('Update failed:', res.status, await res.text());
+    } catch(err) { console.error('Update error:', err); }
+  }
+
+  async function apiDelete(id){
+    try {
+      const res = await fetch(REST_URL + '?id=eq.' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: HEADERS
+      });
+      if(!res.ok) console.error('Delete failed:', res.status, await res.text());
+    } catch(err) { console.error('Delete error:', err); }
+  }
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  /* ---------- rating widget (shared logic) ---------- */
+  function segmentsToValue(rect, clientX){
+    const relX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+    const segment = Math.ceil((relX / rect.width) * 10);
+    return Math.min(Math.max(segment, 1), 10) / 2;
+  }
+
+  function attachRatingWidget(el, getValue, onCommit, readonly){
+    const fill = el.querySelector('.fill');
+    function paint(v){ fill.style.width = (v/5*100) + '%'; }
+    paint(getValue());
+    if(readonly){ el.classList.add('readonly'); return { repaint: () => paint(getValue()) }; }
+
+    el.addEventListener('mousemove', e => {
+      const rect = el.getBoundingClientRect();
+      paint(segmentsToValue(rect, e.clientX));
+      el.classList.add('dragging');
+    });
+    el.addEventListener('mouseleave', () => {
+      el.classList.remove('dragging');
+      paint(getValue());
+    });
+    el.addEventListener('click', e => {
+      const rect = el.getBoundingClientRect();
+      const val = segmentsToValue(rect, e.clientX);
+      const current = getValue();
+      const next = (current === val) ? 0 : val;
+      onCommit(next);
+      paint(next);
+    });
+    el.addEventListener('touchstart', handleTouch, {passive:true});
+    el.addEventListener('touchmove', handleTouch, {passive:true});
+    function handleTouch(e){
+      const t = e.touches[0];
+      if(!t) return;
+      const rect = el.getBoundingClientRect();
+      paint(segmentsToValue(rect, t.clientX));
+    }
+    el.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      if(!t) return;
+      const rect = el.getBoundingClientRect();
+      const val = segmentsToValue(rect, t.clientX);
+      const current = getValue();
+      const next = (current === val) ? 0 : val;
+      onCommit(next);
+      paint(next);
+    });
+    return { repaint: () => paint(getValue()) };
+  }
+
+  function ratingLabelText(v){
+    return v > 0 ? v.toFixed(1).replace('.0','') + ' ★' : 'Not rated';
+  }
+
+  /* ---------- sorting / filtering / search ---------- */
+  function effectiveTimestamp(e){
+    if(e.reviewDate){
+      const t = Date.parse(e.reviewDate);
+      if(!isNaN(t)) return t;
+    }
+    if(e.releaseYear){
+      return new Date(Number(e.releaseYear), 0, 1).getTime();
+    }
+    return e.createdAt;
+  }
+
+  function getFilteredSorted(){
+    const q = searchQuery.trim().toLowerCase();
+    let list = entries.filter(e => currentFilter === 'all' ? true : e.type === currentFilter);
+    if(q){
+      list = list.filter(e =>
+        e.title.toLowerCase().includes(q) || e.artist.toLowerCase().includes(q)
+      );
+    }
+    list = list.slice().sort((a,b) => {
+      if(sortMode === 'rating') return b.rating - a.rating;
+      if(sortMode === 'alpha') return a.title.localeCompare(b.title);
+      return effectiveTimestamp(b) - effectiveTimestamp(a);
+    });
+    return list;
+  }
+
+  /* ---------- render grid ---------- */
+  function render(){
+    const filtered = getFilteredSorted();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if(currentPage > totalPages) currentPage = totalPages;
+    if(currentPage < 1) currentPage = 1;
+    const pageItems = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+
+    grid.innerHTML = '';
+
+    if(filtered.length === 0){
+      grid.innerHTML = `<div class="empty-state">
+        <strong>Nothing here yet</strong>
+        ${entries.length === 0 ? 'Hit "Log something" to add your first album or track.' : 'No entries match your filters.'}
+      </div>`;
+      pagination.innerHTML = '';
+      updateStats();
+      return;
+    }
+
+    pageItems.forEach(entry => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const badgeHtml = entry.badge === 'spotted'
+        ? `<div class="badge-chip spotted">◎ Spotted</div>`
+        : entry.badge === 'aoty'
+          ? `<div class="badge-chip aoty">★ AOTY${entry.aotyYear ? ' ' + entry.aotyYear : ''}</div>`
+          : '';
+      const tagsHtml = (entry.tags && entry.tags.length)
+        ? `<div class="tags-row">${entry.tags.map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>`
+        : '';
+      const reviewedHtml = (entry.review && entry.review.trim())
+        ? `<p class="reviewed-flag">✎ Reviewed${entry.reviewDate ? ' · ' + entry.reviewDate : ''}</p>`
+        : '';
+
+      card.innerHTML = `
+        <div class="type-tag">${entry.type === 'song' ? 'Track' : 'Album'}</div>
+        <div class="actions">
+          <button class="icon-btn" data-action="edit" title="Edit">✎</button>
+          <button class="icon-btn" data-action="delete" title="Delete">✕</button>
+        </div>
+        <div class="cover-container">
+          ${entry.cover
+            ? `<img class="cover" src="${entry.cover}" alt="${escapeHtml(entry.title)} cover">`
+            : `<div class="cover-placeholder">♪</div>`}
+          ${badgeHtml}
+        </div>
+        <div class="info">
+          <p class="title">${escapeHtml(entry.title)}</p>
+          <p class="artist">${escapeHtml(entry.artist)}${entry.releaseYear ? ' · ' + entry.releaseYear : ''}</p>
+          ${tagsHtml}
+          <div class="rating-row">
+            <div class="rating readonly" data-id="${entry.id}">
+              <div class="layer track"></div>
+              <div class="layer fill"></div>
+            </div>
+            <span class="rating-label">${ratingLabelText(entry.rating)}</span>
+          </div>
+          ${reviewedHtml}
+        </div>
+      `;
+      grid.appendChild(card);
+
+      const ratingEl = card.querySelector('.rating');
+      attachRatingWidget(ratingEl, () => entry.rating, () => {}, true);
+
+      card.querySelector('[data-action="edit"]').addEventListener('click', () => openModal(entry.id));
+
+      card.querySelector('[data-action="delete"]').addEventListener('click', () => {
+        if(confirm(`Delete "${entry.title}" from your log?`)){
+          entries = entries.filter(e => e.id !== entry.id);
+          render();
+          apiDelete(entry.id);
+        }
+      });
+      card.querySelector('.cover, .cover-placeholder')?.addEventListener('click', () => openModal(entry.id));
+      card.querySelector('.title').addEventListener('click', () => openModal(entry.id));
+    });
+
+    renderPagination(totalPages);
+    updateStats();
+  }
+
+  function renderPagination(totalPages){
+    if(totalPages <= 1){ pagination.innerHTML = ''; return; }
+    pagination.innerHTML = `
+      <button id="prevPage" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>
+      <span>Page <input class="page-jump" id="pageJump" type="number" min="1" max="${totalPages}" value="${currentPage}"> of ${totalPages}</span>
+      <button id="nextPage" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+    `;
+    $('#prevPage').addEventListener('click', () => { currentPage--; render(); window.scrollTo({top:0, behavior:'smooth'}); });
+    $('#nextPage').addEventListener('click', () => { currentPage++; render(); window.scrollTo({top:0, behavior:'smooth'}); });
+    $('#pageJump').addEventListener('change', e => {
+      const v = parseInt(e.target.value, 10);
+      if(!isNaN(v)){ currentPage = Math.min(Math.max(v, 1), totalPages); render(); }
+    });
+  }
+
+  function updateStats(){
+    $('#statTotal').textContent = entries.length;
+    $('#statAlbums').textContent = entries.filter(e => e.type === 'album').length;
+    $('#statSongs').textContent = entries.filter(e => e.type === 'song').length;
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  /* ---------- filters / search / sort ---------- */
+  document.querySelectorAll('#filterTabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#filterTabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      currentPage = 1;
+      render();
+    });
+  });
+
+  let searchTimer;
+  $('#searchInput').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      searchQuery = e.target.value;
+      currentPage = 1;
+      render();
+    }, 120);
+  });
+
+  $('#sortSelect').addEventListener('change', e => {
+    sortMode = e.target.value;
+    currentPage = 1;
+    render();
+  });
+
+  /* ---------- modal ---------- */
+  const backdrop = $('#modalBackdrop');
+  const formRatingEl = $('#formRating');
+  let formWidget;
+
+  function setBadgeUI(badge){
+    formBadge = badge;
+    document.querySelectorAll('#badgeToggle button').forEach(b => b.classList.toggle('active', b.dataset.badge === badge));
+    $('#aotyYearField').style.display = badge === 'aoty' ? 'block' : 'none';
+  }
+
+  function syncReviewDateVisibility(){
+    const hasReview = $('#fieldReview').value.trim().length > 0;
+    $('#reviewDateField').style.display = hasReview ? 'block' : 'none';
+  }
+
+  function resetForm(){
+    formType = 'album';
+    formRatingValue = 0;
+    formCoverData = '';
+    editingId = null;
+    $('#fieldTitle').value = '';
+    $('#fieldArtist').value = '';
+    $('#fieldTags').value = '';
+    $('#fieldReleaseYear').value = '';
+    $('#fieldCoverUrl').value = '';
+    $('#coverPreview').src = '';
+    $('#fieldAotyYear').value = '';
+    $('#fieldReview').value = '';
+    $('#fieldReviewDate').value = '';
+    $('#formRatingLabel').textContent = 'Not rated';
+    document.querySelectorAll('#typeToggle button').forEach(b => b.classList.toggle('active', b.dataset.type === 'album'));
+    setBadgeUI('none');
+    syncReviewDateVisibility();
+    if(formWidget) formWidget.repaint();
+  }
+
+  function openModal(id){
+    resetForm();
+    if(id){
+      const entry = entries.find(e => e.id === id);
+      if(entry){
+        editingId = id;
+        formType = entry.type;
+        formRatingValue = entry.rating;
+        formCoverData = entry.cover;
+        $('#fieldTitle').value = entry.title;
+        $('#fieldArtist').value = entry.artist;
+        $('#fieldTags').value = (entry.tags || []).join(', ');
+        $('#fieldReleaseYear').value = entry.releaseYear || '';
+        $('#fieldCoverUrl').value = entry.cover || '';
+        $('#coverPreview').src = entry.cover || '';
+        $('#fieldAotyYear').value = entry.aotyYear || '';
+        $('#fieldReview').value = entry.review || '';
+        $('#fieldReviewDate').value = entry.reviewDate || '';
+        $('#formRatingLabel').textContent = ratingLabelText(entry.rating);
+        document.querySelectorAll('#typeToggle button').forEach(b => b.classList.toggle('active', b.dataset.type === entry.type));
+        setBadgeUI(entry.badge || 'none');
+        syncReviewDateVisibility();
+        $('#modalTitle').textContent = 'Edit entry';
+      }
+    } else {
+      $('#modalTitle').textContent = 'Log a listen';
+    }
+    if(formWidget) formWidget.repaint();
+    backdrop.classList.add('open');
+    $('#fieldTitle').focus();
+  }
+
+  function closeModal(){
+    backdrop.classList.remove('open');
+  }
+
+  $('#openModalBtn').addEventListener('click', () => openModal(null));
+  $('#cancelBtn').addEventListener('click', closeModal);
+  backdrop.addEventListener('click', e => { if(e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && backdrop.classList.contains('open')) closeModal(); });
+
+  document.querySelectorAll('#typeToggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      formType = btn.dataset.type;
+      document.querySelectorAll('#typeToggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('#badgeToggle button').forEach(btn => {
+    btn.addEventListener('click', () => setBadgeUI(btn.dataset.badge));
+  });
+
+  $('#fieldReview').addEventListener('input', syncReviewDateVisibility);
+
+  formWidget = attachRatingWidget(formRatingEl, () => formRatingValue, (v) => {
+    formRatingValue = v;
+    $('#formRatingLabel').textContent = ratingLabelText(v);
+  }, false);
+
+  $('#fieldCoverUrl').addEventListener('input', e => {
+    formCoverData = e.target.value.trim();
+    $('#coverPreview').src = formCoverData;
+  });
+
+  $('#saveBtn').addEventListener('click', () => {
+    const title = $('#fieldTitle').value.trim();
+    const artist = $('#fieldArtist').value.trim();
+    if(!title || !artist){
+      alert('Please fill in both a title and an artist.');
+      return;
+    }
+    const tags = $('#fieldTags').value.split(',').map(t => t.trim()).filter(Boolean);
+    const releaseYear = $('#fieldReleaseYear').value ? Number($('#fieldReleaseYear').value) : null;
+    const aotyYear = $('#fieldAotyYear').value ? Number($('#fieldAotyYear').value) : null;
+    const review = $('#fieldReview').value.trim();
+    const reviewDate = review ? $('#fieldReviewDate').value : '';
+
+    const payload = {
+      type: formType, title, artist, cover: formCoverData, rating: formRatingValue,
+      tags, releaseYear, badge: formBadge, aotyYear: formBadge === 'aoty' ? aotyYear : null,
+      review, reviewDate
+    };
+
+    if(editingId){
+      const entry = entries.find(e => e.id === editingId);
+      Object.assign(entry, payload);
+      closeModal();
+      render();
+      apiUpdate(entry);
+    } else {
+      const newEntry = Object.assign({ id: uid(), createdAt: Date.now() }, payload);
+      entries.push(newEntry);
+      closeModal();
+      render();
+      apiCreate(newEntry);
+    }
+  });
+
+  /* ---------- init ---------- */
+  load();
+})();
+</script>
+</body>
+</html>
