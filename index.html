@@ -17,6 +17,7 @@
     --accent:   #FF1493;   /* Deep pink for active states */
     --paper:    #FFFFFF;
     --lime:     #C8D124;   /* fixed lime, used for empty-state boxes regardless of dark mode */
+    --pink:     #FF66B2;   /* fixed pink, used for the genre count banner regardless of dark mode */
     --star:     28px;
     --radius:   12px;
     --shadow:   0 8px 24px rgba(0,0,0,.08);
@@ -74,36 +75,36 @@
   .tabs{ display:flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 999px; border: 2px solid var(--ink); }
   .tabs button{
     border:none; background: transparent; color: var(--muted);
-    font-family: inherit; font-size: .85rem; font-weight:600;
-    padding: 8px 18px; border-radius: 999px; cursor:pointer; transition: all .15s ease;
+    font-family: inherit; font-size: .78rem; font-weight:600;
+    padding: 6px 14px; border-radius: 999px; cursor:pointer; transition: all .15s ease;
   }
   .tabs button.active{ background: var(--card); color: var(--ink); }
   .tabs button:hover:not(.active){ color: var(--ink); }
 
   .search-box{ position:relative; }
   .search-box input{
-    width: 200px; padding: 10px 14px 10px 32px; border-radius: 999px;
+    width: 170px; padding: 8px 12px 8px 28px; border-radius: 999px;
     border: 2px solid var(--ink); background: var(--card);
-    color: var(--ink); font-family: inherit; font-size:.85rem; font-weight: 500;
+    color: var(--ink); font-family: inherit; font-size:.78rem; font-weight: 500;
   }
   .search-box input::placeholder{ color: #555; }
   .search-box input:focus{ outline: none; border-color: var(--ink); }
   .search-box::before{
-    content:"⌕"; position:absolute; left:12px; top:50%; transform:translateY(-50%);
-    color: var(--ink); font-size:1.1rem; pointer-events:none; font-weight: bold;
+    content:"⌕"; position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    color: var(--ink); font-size:1rem; pointer-events:none; font-weight: bold;
   }
 
   .sort-select{
-    padding: 10px 14px; border-radius: 999px; border: 2px solid var(--ink);
-    background: var(--card); color: var(--ink); font-family: inherit; font-size:.85rem; font-weight: 600;
+    padding: 8px 12px; border-radius: 999px; border: 2px solid var(--ink);
+    background: var(--card); color: var(--ink); font-family: inherit; font-size:.78rem; font-weight: 600;
     cursor:pointer;
   }
   .sort-select:focus{ outline: none; border-color: var(--ink); }
 
   .btn-primary{
-    font-family: inherit; font-weight:600; font-size:.9rem;
+    font-family: inherit; font-weight:600; font-size:.8rem;
     background: var(--card); color: var(--ink); border: 2px solid var(--ink);
-    padding: 12px 22px; border-radius: 999px; cursor:pointer;
+    padding: 9px 16px; border-radius: 999px; cursor:pointer;
     display:inline-flex; align-items:center; gap:8px;
     transition: transform .15s ease;
   }
@@ -312,10 +313,35 @@
   .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:22px; }
   .btn-ghost{
     background:transparent; border:2px solid var(--ink); color: var(--ink);
-    padding: 11px 20px; border-radius:999px; cursor:pointer; font-family:inherit; font-weight: 600;
+    padding: 8px 14px; border-radius:999px; cursor:pointer; font-family:inherit; font-weight: 600; font-size:.8rem;
   }
   .btn-ghost:hover{ background: var(--bg); }
-  .icon-toggle{ color: var(--ink); display:inline-flex; align-items:center; gap:6px; }
+  .icon-toggle{ color: var(--ink); display:inline-flex; align-items:center; gap:5px; }
+
+  /* ---------- genre dropdown ---------- */
+  .genre-dropdown{ position:relative; }
+  .genre-btn{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .genre-menu{
+    position:absolute; top:calc(100% + 6px); left:0; min-width:200px; max-height:280px;
+    overflow-y:auto; background: var(--paper); border:2px solid var(--ink); border-radius:12px;
+    box-shadow: 4px 4px 0px var(--ink); z-index:30; padding:6px; display:none;
+  }
+  .genre-menu.open{ display:block; }
+  .genre-menu-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:7px 10px; border-radius:8px; cursor:pointer; font-size:.8rem; font-weight:600; color: var(--ink);
+  }
+  .genre-menu-item:hover{ background: var(--bg); }
+  .genre-menu-mark{ font-weight:800; min-width:12px; text-align:center; }
+  .genre-menu-empty{ padding:10px; font-size:.78rem; color: var(--muted); }
+
+  /* ---------- genre count banner ---------- */
+  .genre-banner{
+    display:none; background: var(--pink); border:2px solid var(--ink); border-radius:999px;
+    padding: 9px 18px; font-weight:700; font-size:.82rem; color: var(--ink);
+    margin-bottom:16px; width:fit-content;
+  }
+  .genre-banner.visible{ display:block; }
 
   footer.made{
     text-align:center; margin-top:60px; color: var(--muted); font-size:.8rem; font-weight: 500;
@@ -374,19 +400,27 @@
         <option value="rating">Sort: Rating</option>
         <option value="alpha">Sort: Title A–Z</option>
       </select>
+      <div class="genre-dropdown" id="genreDropdown">
+        <button type="button" class="sort-select genre-btn" id="genreDropdownBtn">
+          <span class="genre-btn-label">Genre</span>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="genre-menu" id="genreMenu"></div>
+      </div>
     </div>
     <div style="display:flex; gap:10px; align-items:center;">
       <button class="btn-ghost icon-toggle" id="darkModeToggle" title="Toggle dark mode">
-        <svg id="darkModeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="darkModeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
       <button class="btn-ghost icon-toggle" id="shareBtn" title="Copy a read-only share link">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
         Share
       </button>
       <button class="btn-primary" id="openModalBtn">＋ Log something</button>
     </div>
   </div>
 
+  <div class="genre-banner" id="genreBanner"></div>
   <div class="grid" id="grid"></div>
   <div class="pagination" id="pagination"></div>
 
@@ -508,6 +542,7 @@
   let searchQuery = '';
   let sortMode = 'release-newest';
   let currentPage = 1;
+  let genreFilter = null; // null, or { genre: string, mode: 'include' | 'exclude' }
 
   let editingId = null;
   let formType = 'album';
@@ -696,6 +731,13 @@
   function getFilteredSorted(){
     const q = searchQuery.trim().toLowerCase();
     let list = entries.filter(e => currentFilter === 'all' ? true : e.type === currentFilter);
+    if(genreFilter){
+      if(genreFilter.mode === 'include'){
+        list = list.filter(e => (e.tags || []).includes(genreFilter.genre));
+      } else {
+        list = list.filter(e => !(e.tags || []).includes(genreFilter.genre));
+      }
+    }
     if(q){
       list = list.filter(e =>
         e.title.toLowerCase().includes(q) || e.artist.toLowerCase().includes(q)
@@ -732,6 +774,9 @@
       </div>`;
       pagination.innerHTML = '';
       updateStats();
+      renderGenreMenu();
+      updateGenreButtonLabel();
+      updateGenreBanner();
       return;
     }
 
@@ -808,6 +853,9 @@
 
     renderPagination(totalPages);
     updateStats();
+    renderGenreMenu();
+    updateGenreButtonLabel();
+    updateGenreBanner();
   }
 
   function renderPagination(totalPages){
@@ -830,6 +878,96 @@
     $('#statAlbums').textContent = entries.filter(e => e.type === 'album').length;
     $('#statSongs').textContent = entries.filter(e => e.type === 'song').length;
   }
+
+  /* ---------- genre dropdown ---------- */
+  function getAllGenres(){
+    const set = new Set();
+    entries.forEach(e => (e.tags || []).forEach(t => { if(t) set.add(t); }));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderGenreMenu(){
+    const menu = $('#genreMenu');
+    const genres = getAllGenres();
+    if(genres.length === 0){
+      menu.innerHTML = `<div class="genre-menu-empty">No genres logged yet</div>`;
+      return;
+    }
+    menu.innerHTML = genres.map(g => {
+      let mark = '';
+      if(genreFilter && genreFilter.genre === g){
+        mark = genreFilter.mode === 'include' ? '✓' : '−';
+      }
+      return `<div class="genre-menu-item" data-genre="${escapeHtml(g)}"><span>${escapeHtml(g)}</span><span class="genre-menu-mark">${mark}</span></div>`;
+    }).join('');
+    menu.querySelectorAll('.genre-menu-item').forEach(item => {
+      item.addEventListener('click', () => cycleGenreFilter(item.dataset.genre));
+    });
+  }
+
+  // Clicking a genre cycles it: not selected -> include -> exclude -> not selected.
+  // Selecting a different genre always resets to include for that genre.
+  function cycleGenreFilter(genre){
+    if(!genreFilter || genreFilter.genre !== genre){
+      genreFilter = { genre, mode: 'include' };
+    } else if(genreFilter.mode === 'include'){
+      genreFilter = { genre, mode: 'exclude' };
+    } else {
+      genreFilter = null;
+    }
+    currentPage = 1;
+    render();
+  }
+
+  function updateGenreButtonLabel(){
+    const label = $('#genreDropdownBtn').querySelector('.genre-btn-label');
+    if(genreFilter){
+      label.textContent = `Genre: ${genreFilter.genre}${genreFilter.mode === 'exclude' ? ' (excl.)' : ''}`;
+    } else {
+      label.textContent = 'Genre';
+    }
+  }
+
+  function updateGenreBanner(){
+    const el = $('#genreBanner');
+    if(!genreFilter){
+      el.classList.remove('visible');
+      return;
+    }
+    const g = genreFilter.genre;
+    const relevant = genreFilter.mode === 'include'
+      ? entries.filter(e => (e.tags || []).includes(g))
+      : entries.filter(e => !(e.tags || []).includes(g));
+    const albumCount = relevant.filter(e => e.type === 'album').length;
+    const songCount = relevant.filter(e => e.type === 'song').length;
+
+    let text;
+    if(albumCount > 0 && songCount > 0){
+      text = `You've listened to ${albumCount} album${albumCount === 1 ? '' : 's'} & ${songCount} track${songCount === 1 ? '' : 's'}`;
+    } else if(albumCount > 0){
+      text = `You've listened to ${albumCount} album${albumCount === 1 ? '' : 's'}`;
+    } else if(songCount > 0){
+      text = `You've listened to ${songCount} track${songCount === 1 ? '' : 's'}`;
+    } else {
+      text = `You haven't logged any albums or tracks yet`;
+    }
+    if(genreFilter.mode === 'exclude'){
+      text += ` (excluding ${g})`;
+    }
+    el.textContent = text;
+    el.classList.add('visible');
+  }
+
+  $('#genreDropdownBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#genreMenu').classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    const wrap = $('#genreDropdown');
+    if(wrap && !wrap.contains(e.target)){
+      $('#genreMenu').classList.remove('open');
+    }
+  });
 
   function escapeHtml(str){
     const d = document.createElement('div');
@@ -1018,8 +1156,8 @@
 
   /* ---------- dark mode ---------- */
   const darkModeBtn = $('#darkModeToggle');
-  const moonIcon = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-  const sunIcon = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  const moonIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  const sunIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
   function applyDarkMode(on){
     document.body.classList.toggle('dark-mode', on);
     if(darkModeBtn) darkModeBtn.innerHTML = on ? sunIcon : moonIcon;
