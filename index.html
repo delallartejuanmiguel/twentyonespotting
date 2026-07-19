@@ -162,7 +162,22 @@
     position:absolute; left:12px; bottom:12px; z-index:3;
     font-size:.85rem; font-weight: 700; letter-spacing:.03em;
     padding: 6px 12px; border-radius: 8px; border: 2px solid var(--ink);
+    display:inline-flex; align-items:center; gap:5px;
+    overflow:hidden;
   }
+  .badge-chip::after{
+    content:"";
+    position:absolute; top:0; left:-75%;
+    width:50%; height:100%;
+    background: linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.75) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-20deg);
+    transition: left .6s ease;
+    pointer-events:none;
+  }
+  .badge-chip:hover::after{
+    left:125%;
+  }
+  .badge-icon{ flex-shrink:0; }
   .badge-chip.spotted{
     background: var(--bg); color: var(--ink); 
   }
@@ -447,12 +462,12 @@
       <div class="type-toggle" id="badgeToggle">
         <button type="button" data-badge="none" class="active">None</button>
         <button type="button" data-badge="spotted">Spotted</button>
-        <button type="button" data-badge="aoty">Album of the Year</button>
+        <button type="button" data-badge="aoty" id="aotyBadgeBtn">Album of the Year</button>
       </div>
     </div>
 
     <div class="field" id="aotyYearField" style="display:none;">
-      <label for="fieldAotyYear">Album of the Year — which year?</label>
+      <label for="fieldAotyYear" id="aotyYearLabel">Album of the Year — which year?</label>
       <input type="number" id="fieldAotyYear" placeholder="2026" min="1900" max="2100">
     </div>
 
@@ -725,9 +740,9 @@
       const card = document.createElement('div');
       card.className = 'card';
       const badgeHtml = entry.badge === 'spotted'
-        ? `<div class="badge-chip spotted">◎ Spotted</div>`
+        ? `<div class="badge-chip spotted"><svg class="badge-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>Spotted</div>`
         : entry.badge === 'aoty'
-          ? `<div class="badge-chip aoty">★ AOTY${entry.aotyYear ? ' ' + entry.aotyYear : ''}</div>`
+          ? `<div class="badge-chip aoty">${entry.aotyYear ? entry.aotyYear + ' ' : ''}${entry.type === 'song' ? 'SOTY' : 'AOTY'}</div>`
           : '';
       const tagsHtml = (entry.tags && entry.tags.length)
         ? `<div class="tags-row">${entry.tags.map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>`
@@ -861,6 +876,15 @@
     $('#aotyYearField').style.display = badge === 'aoty' ? 'block' : 'none';
   }
 
+  // The "of the year" mark reads as Album of the Year for albums and
+  // Song of the Year for tracks — update the button/label text live
+  // whenever the Album/Track toggle changes.
+  function updateAotyLabels(){
+    const isSong = formType === 'song';
+    $('#aotyBadgeBtn').textContent = isSong ? 'Song of the Year' : 'Album of the Year';
+    $('#aotyYearLabel').textContent = isSong ? 'Song of the Year — which year?' : 'Album of the Year — which year?';
+  }
+
   function syncReviewDateVisibility(){
     const hasReview = $('#fieldReview').value.trim().length > 0;
     $('#reviewDateField').style.display = hasReview ? 'block' : 'none';
@@ -883,6 +907,7 @@
     $('#fieldReviewDate').value = '';
     $('#formRatingLabel').textContent = 'Not rated';
     document.querySelectorAll('#typeToggle button').forEach(b => b.classList.toggle('active', b.dataset.type === 'album'));
+    updateAotyLabels();
     setBadgeUI('none');
     syncReviewDateVisibility();
     if(formWidget) formWidget.repaint();
@@ -910,6 +935,7 @@
         $('#fieldReviewDate').value = entry.reviewDate || '';
         $('#formRatingLabel').textContent = ratingLabelText(entry.rating);
         document.querySelectorAll('#typeToggle button').forEach(b => b.classList.toggle('active', b.dataset.type === entry.type));
+        updateAotyLabels();
         setBadgeUI(entry.badge || 'none');
         syncReviewDateVisibility();
         $('#modalTitle').textContent = 'Edit entry';
@@ -936,6 +962,7 @@
       formType = btn.dataset.type;
       document.querySelectorAll('#typeToggle button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      updateAotyLabels();
     });
   });
 
