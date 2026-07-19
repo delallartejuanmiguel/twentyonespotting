@@ -321,6 +321,7 @@
   /* ---------- genre dropdown ---------- */
   .genre-dropdown{ position:relative; }
   .genre-btn{ display:inline-flex; align-items:center; gap:5px; }
+  .sort-btn-label{ white-space:nowrap; }
   .genre-btn-label{
     max-width: 120px; overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap; display:inline-block; vertical-align:middle;
@@ -398,12 +399,18 @@
       <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search title or artist…">
       </div>
-      <select class="sort-select" id="sortSelect">
-        <option value="release-newest">Sort: Date Released (Newest)</option>
-        <option value="release-oldest">Sort: Date Released (Oldest)</option>
-        <option value="rating">Sort: Rating</option>
-        <option value="alpha">Sort: Title A–Z</option>
-      </select>
+      <div class="genre-dropdown" id="sortDropdown">
+        <button type="button" class="sort-select genre-btn" id="sortDropdownBtn">
+          <span class="sort-btn-label" id="sortBtnLabel">Sort: Date Released (Newest)</span>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="genre-menu" id="sortMenu">
+          <div class="genre-menu-item" data-sort="release-newest"><span>Date Released (Newest)</span><span class="genre-menu-mark"></span></div>
+          <div class="genre-menu-item" data-sort="release-oldest"><span>Date Released (Oldest)</span><span class="genre-menu-mark"></span></div>
+          <div class="genre-menu-item" data-sort="rating"><span>Rating</span><span class="genre-menu-mark"></span></div>
+          <div class="genre-menu-item" data-sort="alpha"><span>Title A–Z</span><span class="genre-menu-mark"></span></div>
+        </div>
+      </div>
       <div class="genre-dropdown" id="genreDropdown">
         <button type="button" class="sort-select genre-btn" id="genreDropdownBtn">
           <span class="genre-btn-label">Genre</span>
@@ -973,6 +980,7 @@
 
   $('#genreDropdownBtn').addEventListener('click', (e) => {
     e.stopPropagation();
+    $('#sortMenu').classList.remove('open');
     $('#genreMenu').classList.toggle('open');
   });
   document.addEventListener('click', (e) => {
@@ -1009,10 +1017,41 @@
     }, 120);
   });
 
-  $('#sortSelect').addEventListener('change', e => {
-    sortMode = e.target.value;
-    currentPage = 1;
-    render();
+  const sortLabels = {
+    'release-newest': 'Sort: Date Released (Newest)',
+    'release-oldest': 'Sort: Date Released (Oldest)',
+    'rating': 'Sort: Rating',
+    'alpha': 'Sort: Title A–Z'
+  };
+
+  function updateSortMenu(){
+    $('#sortMenu').querySelectorAll('.genre-menu-item').forEach(item => {
+      item.querySelector('.genre-menu-mark').textContent = (item.dataset.sort === sortMode) ? '✓' : '';
+    });
+    $('#sortBtnLabel').textContent = sortLabels[sortMode] || 'Sort';
+  }
+  updateSortMenu();
+
+  $('#sortMenu').querySelectorAll('.genre-menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+      sortMode = item.dataset.sort;
+      currentPage = 1;
+      updateSortMenu();
+      $('#sortMenu').classList.remove('open');
+      render();
+    });
+  });
+
+  $('#sortDropdownBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#genreMenu').classList.remove('open');
+    $('#sortMenu').classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    const wrap = $('#sortDropdown');
+    if(wrap && !wrap.contains(e.target)){
+      $('#sortMenu').classList.remove('open');
+    }
   });
 
   /* ---------- modal ---------- */
