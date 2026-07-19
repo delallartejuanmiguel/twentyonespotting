@@ -69,43 +69,43 @@
   /* ---------- controls row ---------- */
   .controls{
     display:flex; align-items:center; justify-content:space-between;
-    gap: 14px; flex-wrap: wrap; margin-bottom: 20px;
+    gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
   }
-  .controls-left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .controls-left{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .tabs{ display:flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 999px; border: 2px solid var(--ink); }
   .tabs button{
     border:none; background: transparent; color: var(--muted);
-    font-family: inherit; font-size: .78rem; font-weight:600;
-    padding: 6px 14px; border-radius: 999px; cursor:pointer; transition: all .15s ease;
+    font-family: inherit; font-size: .74rem; font-weight:600;
+    padding: 5px 12px; border-radius: 999px; cursor:pointer; transition: all .15s ease;
   }
   .tabs button.active{ background: var(--card); color: var(--ink); }
   .tabs button:hover:not(.active){ color: var(--ink); }
 
   .search-box{ position:relative; }
   .search-box input{
-    width: 170px; padding: 8px 12px 8px 28px; border-radius: 999px;
+    width: 150px; padding: 7px 10px 7px 26px; border-radius: 999px;
     border: 2px solid var(--ink); background: var(--card);
-    color: var(--ink); font-family: inherit; font-size:.78rem; font-weight: 500;
+    color: var(--ink); font-family: inherit; font-size:.74rem; font-weight: 500;
   }
   .search-box input::placeholder{ color: #555; }
   .search-box input:focus{ outline: none; border-color: var(--ink); }
   .search-box::before{
-    content:"⌕"; position:absolute; left:10px; top:50%; transform:translateY(-50%);
-    color: var(--ink); font-size:1rem; pointer-events:none; font-weight: bold;
+    content:"⌕"; position:absolute; left:9px; top:50%; transform:translateY(-50%);
+    color: var(--ink); font-size:.95rem; pointer-events:none; font-weight: bold;
   }
 
   .sort-select{
-    padding: 8px 12px; border-radius: 999px; border: 2px solid var(--ink);
-    background: var(--card); color: var(--ink); font-family: inherit; font-size:.78rem; font-weight: 600;
+    padding: 7px 10px; border-radius: 999px; border: 2px solid var(--ink);
+    background: var(--card); color: var(--ink); font-family: inherit; font-size:.74rem; font-weight: 600;
     cursor:pointer;
   }
   .sort-select:focus{ outline: none; border-color: var(--ink); }
 
   .btn-primary{
-    font-family: inherit; font-weight:600; font-size:.8rem;
+    font-family: inherit; font-weight:600; font-size:.76rem;
     background: var(--card); color: var(--ink); border: 2px solid var(--ink);
-    padding: 9px 16px; border-radius: 999px; cursor:pointer;
-    display:inline-flex; align-items:center; gap:8px;
+    padding: 8px 14px; border-radius: 999px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
     transition: transform .15s ease;
   }
   .btn-primary:hover{ transform: translateY(-2px); background: var(--ink); color: var(--card); }
@@ -313,14 +313,18 @@
   .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:22px; }
   .btn-ghost{
     background:transparent; border:2px solid var(--ink); color: var(--ink);
-    padding: 8px 14px; border-radius:999px; cursor:pointer; font-family:inherit; font-weight: 600; font-size:.8rem;
+    padding: 7px 12px; border-radius:999px; cursor:pointer; font-family:inherit; font-weight: 600; font-size:.76rem;
   }
   .btn-ghost:hover{ background: var(--bg); }
-  .icon-toggle{ color: var(--ink); display:inline-flex; align-items:center; gap:5px; }
+  .icon-toggle{ color: var(--ink); display:inline-flex; align-items:center; gap:4px; }
 
   /* ---------- genre dropdown ---------- */
   .genre-dropdown{ position:relative; }
-  .genre-btn{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .genre-btn{ display:inline-flex; align-items:center; gap:5px; }
+  .genre-btn-label{
+    max-width: 120px; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; display:inline-block; vertical-align:middle;
+  }
   .genre-menu{
     position:absolute; top:calc(100% + 6px); left:0; min-width:200px; max-height:280px;
     overflow-y:auto; background: var(--paper); border:2px solid var(--ink); border-radius:12px;
@@ -339,7 +343,7 @@
   .genre-banner{
     display:none; background: var(--pink); border:2px solid var(--ink); border-radius:999px;
     padding: 9px 18px; font-weight:700; font-size:.82rem; color: var(--ink);
-    margin-bottom:16px; width:fit-content;
+    margin:0 auto 16px; width:fit-content; text-align:center;
   }
   .genre-banner.visible{ display:block; }
 
@@ -410,10 +414,10 @@
     </div>
     <div style="display:flex; gap:10px; align-items:center;">
       <button class="btn-ghost icon-toggle" id="darkModeToggle" title="Toggle dark mode">
-        <svg id="darkModeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="darkModeIcon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
       <button class="btn-ghost icon-toggle" id="shareBtn" title="Copy a read-only share link">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
         Share
       </button>
       <button class="btn-primary" id="openModalBtn">＋ Log something</button>
@@ -942,17 +946,26 @@
     const songCount = relevant.filter(e => e.type === 'song').length;
 
     let text;
-    if(albumCount > 0 && songCount > 0){
-      text = `You've listened to ${albumCount} album${albumCount === 1 ? '' : 's'} & ${songCount} track${songCount === 1 ? '' : 's'}`;
-    } else if(albumCount > 0){
-      text = `You've listened to ${albumCount} album${albumCount === 1 ? '' : 's'}`;
-    } else if(songCount > 0){
-      text = `You've listened to ${songCount} track${songCount === 1 ? '' : 's'}`;
+    if(genreFilter.mode === 'include'){
+      if(albumCount > 0 && songCount > 0){
+        text = `You listened to ${albumCount} ${g} album${albumCount === 1 ? '' : 's'} & ${songCount} ${g} track${songCount === 1 ? '' : 's'}`;
+      } else if(albumCount > 0){
+        text = `You listened to ${albumCount} ${g} album${albumCount === 1 ? '' : 's'}`;
+      } else if(songCount > 0){
+        text = `You listened to ${songCount} ${g} track${songCount === 1 ? '' : 's'}`;
+      } else {
+        text = `You haven't listened to any ${g} albums or tracks yet`;
+      }
     } else {
-      text = `You haven't logged any albums or tracks yet`;
-    }
-    if(genreFilter.mode === 'exclude'){
-      text += ` (excluding ${g})`;
+      if(albumCount > 0 && songCount > 0){
+        text = `You listened to ${albumCount} album${albumCount === 1 ? '' : 's'} & ${songCount} track${songCount === 1 ? '' : 's'} (excluding ${g})`;
+      } else if(albumCount > 0){
+        text = `You listened to ${albumCount} album${albumCount === 1 ? '' : 's'} (excluding ${g})`;
+      } else if(songCount > 0){
+        text = `You listened to ${songCount} track${songCount === 1 ? '' : 's'} (excluding ${g})`;
+      } else {
+        text = `You haven't logged any albums or tracks yet (excluding ${g})`;
+      }
     }
     el.textContent = text;
     el.classList.add('visible');
@@ -1156,8 +1169,8 @@
 
   /* ---------- dark mode ---------- */
   const darkModeBtn = $('#darkModeToggle');
-  const moonIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-  const sunIcon = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  const moonIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  const sunIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
   function applyDarkMode(on){
     document.body.classList.toggle('dark-mode', on);
     if(darkModeBtn) darkModeBtn.innerHTML = on ? sunIcon : moonIcon;
