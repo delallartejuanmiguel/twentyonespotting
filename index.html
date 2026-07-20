@@ -348,6 +348,37 @@
   }
   .genre-banner.visible{ display:block; }
 
+  /* ---------- release date calendar ---------- */
+  .calendar-popup{
+    position:fixed; z-index:100; display:none;
+    background: var(--paper); border:2px solid var(--ink); border-radius:14px;
+    box-shadow: 4px 4px 0px var(--ink); padding:14px; width:270px;
+  }
+  .calendar-popup.open{ display:block; }
+  .calendar-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+  }
+  .calendar-nav{
+    background: var(--card); border:2px solid var(--ink); border-radius:8px;
+    width:26px; height:26px; cursor:pointer; font-weight:700; color: var(--ink);
+    display:flex; align-items:center; justify-content:center; font-family:inherit;
+  }
+  .calendar-nav:hover{ background: var(--ink); color: var(--card); }
+  .calendar-month-year{ font-weight:700; font-size:.85rem; color: var(--ink); }
+  .calendar-weekdays{
+    display:grid; grid-template-columns: repeat(7,1fr); text-align:center;
+    font-size:.68rem; font-weight:700; color: var(--muted); margin-bottom:4px;
+  }
+  .calendar-grid{ display:grid; grid-template-columns: repeat(7,1fr); gap:2px; }
+  .calendar-day{
+    aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+    border-radius:8px; font-size:.78rem; font-weight:600; color: var(--ink); cursor:pointer;
+  }
+  .calendar-day:hover{ background: var(--bg); }
+  .calendar-day.other-month{ color:#bbb; }
+  .calendar-day.selected{ background: var(--card); border:2px solid var(--ink); font-weight:800; }
+  .calendar-day.today{ text-decoration: underline; }
+
   footer.made{
     text-align:center; margin-top:60px; color: var(--muted); font-size:.8rem; font-weight: 500;
   }
@@ -469,9 +500,21 @@
         <p class="field-hint">Comma-separated</p>
       </div>
       <div class="field">
-        <label for="fieldReleaseYear">Release year</label>
-        <input type="number" id="fieldReleaseYear" placeholder="2007" min="1900" max="2100">
+        <label for="fieldReleaseDate">Release date</label>
+        <input type="text" id="fieldReleaseDate" placeholder="Select a date…" readonly style="cursor:pointer;">
       </div>
+    </div>
+
+    <div class="calendar-popup" id="calendarPopup">
+      <div class="calendar-header">
+        <button type="button" class="calendar-nav" id="calPrevBtn">←</button>
+        <div class="calendar-month-year" id="calMonthYear">Month Year</div>
+        <button type="button" class="calendar-nav" id="calNextBtn">→</button>
+      </div>
+      <div class="calendar-weekdays">
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+      </div>
+      <div class="calendar-grid" id="calGrid"></div>
     </div>
 
     <div class="field">
@@ -595,6 +638,7 @@
       rating: Number(row.rating) || 0,
       tags: row.tags ? String(row.tags).split(',').map(t => t.trim()).filter(Boolean) : [],
       releaseYear: row.release_year ? Number(row.release_year) : null,
+      releaseDate: row.release_date || '',
       badge: row.badge || 'none',
       aotyYear: row.aoty_year ? Number(row.aoty_year) : null,
       review: row.review || '',
@@ -614,6 +658,7 @@
       rating: entry.rating,
       tags: (entry.tags || []).join(','),
       release_year: entry.releaseYear,
+      release_date: entry.releaseDate || null,
       badge: entry.badge,
       aoty_year: entry.aotyYear,
       review: entry.review || '',
@@ -757,13 +802,16 @@
     list = list.slice().sort((a,b) => {
       if(sortMode === 'rating') return b.rating - a.rating;
       if(sortMode === 'alpha') return a.title.localeCompare(b.title);
-      // release-newest / release-oldest: sort by release year.
-      // Entries with no release year always sort to the end.
-      const ay = a.releaseYear, by = b.releaseYear;
-      if(ay == null && by == null) return b.createdAt - a.createdAt;
-      if(ay == null) return 1;
-      if(by == null) return -1;
-      return sortMode === 'release-oldest' ? ay - by : by - ay;
+      // release-newest / release-oldest: prefer the exact release date when
+      // it's set, otherwise fall back to just the release year.
+      // Entries with neither always sort to the end.
+      const releaseSortKey = e => e.releaseDate ? new Date(e.releaseDate).getTime()
+        : (e.releaseYear ? new Date(e.releaseYear, 0, 1).getTime() : null);
+      const ak = releaseSortKey(a), bk = releaseSortKey(b);
+      if(ak == null && bk == null) return b.createdAt - a.createdAt;
+      if(ak == null) return 1;
+      if(bk == null) return -1;
+      return sortMode === 'release-oldest' ? ak - bk : bk - ak;
     });
     return list;
   }
@@ -1059,6 +1107,97 @@
   const formRatingEl = $('#formRating');
   let formWidget;
 
+  /* ---------- release date calendar ---------- */
+  let selectedReleaseDate = null;   // 'YYYY-MM-DD' or null
+  let formLegacyYear = null;        // preserves a year-only value from older entries until a real date is picked
+  let calendarViewDate = new Date();
+
+  function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+  function toIsoDate(d){ return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function formatDisplayDate(iso){
+    if(!iso) return '';
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function renderCalendar(){
+    const grid = $('#calGrid');
+    const year = calendarViewDate.getFullYear();
+    const month = calendarViewDate.getMonth();
+    $('#calMonthYear').textContent = calendarViewDate.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+
+    // Monday-first week layout
+    let startWeekday = new Date(year, month, 1).getDay();
+    startWeekday = (startWeekday === 0) ? 6 : startWeekday - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const cells = [];
+    for(let i = 0; i < startWeekday; i++){
+      cells.push({ day: daysInPrevMonth - startWeekday + 1 + i, month: month - 1, year, other: true });
+    }
+    for(let d = 1; d <= daysInMonth; d++){
+      cells.push({ day: d, month, year, other: false });
+    }
+    while(cells.length < 42){
+      cells.push({ day: cells.length - (startWeekday + daysInMonth) + 1, month: month + 1, year, other: true });
+    }
+
+    const todayIso = toIsoDate(new Date());
+    grid.innerHTML = cells.map(c => {
+      const iso = toIsoDate(new Date(c.year, c.month, c.day));
+      const classes = ['calendar-day'];
+      if(c.other) classes.push('other-month');
+      if(selectedReleaseDate === iso) classes.push('selected');
+      if(iso === todayIso) classes.push('today');
+      return `<div class="${classes.join(' ')}" data-iso="${iso}">${c.day}</div>`;
+    }).join('');
+
+    grid.querySelectorAll('.calendar-day').forEach(cell => {
+      cell.addEventListener('click', () => {
+        selectedReleaseDate = cell.dataset.iso;
+        formLegacyYear = null;
+        $('#fieldReleaseDate').value = formatDisplayDate(selectedReleaseDate);
+        renderCalendar();
+        $('#calendarPopup').classList.remove('open');
+      });
+    });
+  }
+
+  function openCalendar(){
+    const rect = $('#fieldReleaseDate').getBoundingClientRect();
+    const popup = $('#calendarPopup');
+    popup.style.top = (rect.bottom + 6) + 'px';
+    popup.style.left = rect.left + 'px';
+    popup.classList.add('open');
+    renderCalendar();
+  }
+
+  $('#fieldReleaseDate').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('#sortMenu')?.classList.remove('open');
+    $('#genreMenu')?.classList.remove('open');
+    const popup = $('#calendarPopup');
+    popup.classList.contains('open') ? popup.classList.remove('open') : openCalendar();
+  });
+  $('#calPrevBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  $('#calNextBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+    renderCalendar();
+  });
+  document.addEventListener('click', (e) => {
+    const popup = $('#calendarPopup');
+    const input = $('#fieldReleaseDate');
+    if(popup && !popup.contains(e.target) && e.target !== input){
+      popup.classList.remove('open');
+    }
+  });
+
   function setBadgeUI(badge){
     formBadge = badge;
     document.querySelectorAll('#badgeToggle button').forEach(b => b.classList.toggle('active', b.dataset.badge === badge));
@@ -1087,7 +1226,11 @@
     $('#fieldTitle').value = '';
     $('#fieldArtist').value = '';
     $('#fieldTags').value = '';
-    $('#fieldReleaseYear').value = '';
+    selectedReleaseDate = null;
+    formLegacyYear = null;
+    calendarViewDate = new Date();
+    $('#fieldReleaseDate').value = '';
+    $('#calendarPopup').classList.remove('open');
     $('#fieldCoverUrl').value = '';
     setCoverPreview('');
     $('#fieldLink').value = '';
@@ -1115,7 +1258,23 @@
         $('#fieldTitle').value = entry.title;
         $('#fieldArtist').value = entry.artist;
         $('#fieldTags').value = (entry.tags || []).join(', ');
-        $('#fieldReleaseYear').value = entry.releaseYear || '';
+        if(entry.releaseDate){
+          selectedReleaseDate = entry.releaseDate;
+          formLegacyYear = null;
+          const [y, m] = entry.releaseDate.split('-').map(Number);
+          calendarViewDate = new Date(y, m - 1, 1);
+          $('#fieldReleaseDate').value = formatDisplayDate(entry.releaseDate);
+        } else if(entry.releaseYear){
+          selectedReleaseDate = null;
+          formLegacyYear = entry.releaseYear;
+          calendarViewDate = new Date(entry.releaseYear, 0, 1);
+          $('#fieldReleaseDate').value = String(entry.releaseYear) + ' (year only — pick a date to add precision)';
+        } else {
+          selectedReleaseDate = null;
+          formLegacyYear = null;
+          calendarViewDate = new Date();
+          $('#fieldReleaseDate').value = '';
+        }
         $('#fieldCoverUrl').value = entry.cover || '';
         setCoverPreview(entry.cover || '');
         $('#fieldLink').value = entry.link || '';
@@ -1139,6 +1298,7 @@
 
   function closeModal(){
     backdrop.classList.remove('open');
+    $('#calendarPopup').classList.remove('open');
   }
 
   $('#openModalBtn').addEventListener('click', () => openModal(null));
@@ -1179,7 +1339,8 @@
       return;
     }
     const tags = $('#fieldTags').value.split(',').map(t => t.trim()).filter(Boolean);
-    const releaseYear = $('#fieldReleaseYear').value ? Number($('#fieldReleaseYear').value) : null;
+    const releaseDate = selectedReleaseDate;
+    const releaseYear = releaseDate ? Number(releaseDate.split('-')[0]) : (formLegacyYear || null);
     const aotyYear = $('#fieldAotyYear').value ? Number($('#fieldAotyYear').value) : null;
     const review = $('#fieldReview').value.trim();
     const reviewDate = review ? $('#fieldReviewDate').value : '';
@@ -1187,7 +1348,7 @@
 
     const payload = {
       type: formType, title, artist, cover: formCoverData, rating: formRatingValue,
-      tags, releaseYear, badge: formBadge, aotyYear: formBadge === 'aoty' ? aotyYear : null,
+      tags, releaseYear, releaseDate, badge: formBadge, aotyYear: formBadge === 'aoty' ? aotyYear : null,
       review, reviewDate, link
     };
 
